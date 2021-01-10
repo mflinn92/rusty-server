@@ -9,13 +9,16 @@ pub struct ThreadPool {
 
 type Job = Box<dyn FnOnce() + Send + 'static>;
 
-enum Message {
+pub enum Message {
     NewJob(Job),
     Terminate,
 }
 
 #[derive(Debug)]
 pub struct PoolCreationError(String);
+
+#[derive(Debug)]
+pub struct ThreadSendError(String);
 
 impl ThreadPool {
     /// Create a new ThreadPool
@@ -41,12 +44,16 @@ impl ThreadPool {
         }
     }
 
-    pub fn execute<F>(&self, f: F)
+    pub fn execute<F>(&self, f: F) -> Result<(), ThreadSendError>
     where
         F: FnOnce() + Send + 'static,
     {
         let job = Box::new(f);
-        self.sender.send(Message::NewJob(job)).unwrap();
+        // self.sender.send(Message::NewJob(job)).unwrap();
+        match self.sender.send(Message::NewJob(job)) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(ThreadSendError(format!("{}", e))),
+        }
     }
 }
 

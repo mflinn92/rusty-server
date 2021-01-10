@@ -3,9 +3,9 @@ use std::io::prelude::*;
 use std::net::{TcpListener, TcpStream};
 use std::thread;
 use std::time::Duration;
-use std::f64::consts::PI;
 
 use hello::ThreadPool;
+
 
 static THREAD_COUNT: usize = 4;
 
@@ -19,17 +19,18 @@ fn main() {
     for stream in listener.incoming().take(2) {
         let stream = stream.unwrap();
 
-        pool.execute(|| {
+        match pool.execute(|| {
             handle_connection(stream);
-        });
+        }) {
+            Ok(_) => continue,
+            Err(e) => println!("{:?}", e),
+        };
     }
     println!("Shutting Down");
 
-    let x = PI;
-    println!("{}", x);
 }
 
-fn handle_connection( mut stream: TcpStream) {
+fn handle_connection(mut stream: TcpStream) {
     let mut buffer = [0; 1024];
 
     stream.read(&mut buffer).unwrap();
