@@ -49,7 +49,6 @@ impl ThreadPool {
         F: FnOnce() + Send + 'static,
     {
         let job = Box::new(f);
-        // self.sender.send(Message::NewJob(job)).unwrap();
         match self.sender.send(Message::NewJob(job)) {
             Ok(_) => Ok(()),
             Err(e) => Err(ThreadSendError(format!("{}", e))),
@@ -62,7 +61,9 @@ impl Drop for ThreadPool {
         println!("Sending terminate message to all workers..");
 
         for _ in &self.workers {
-            self.sender.send(Message::Terminate).unwrap();
+            if let Err(e) = self.sender.send(Message::Terminate) {
+                println!("Failed cleanup, unable to send terminate message: {}", e);
+            };
         }
 
         println!("Shutting down all workers");
@@ -85,7 +86,13 @@ struct Worker {
 impl Worker {
     fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Worker {
         let thread = thread::spawn(move || loop {
-            let message = receiver.lock().unwrap().recv().unwrap();
+            let message =  match receiver.lock().unwrap().recv() {
+                Ok(val) => val,
+                Err(e) => {
+                    println!("Worker {} disconnected with error: {:?}", id, e);
+                    Message::Terminate
+                }
+            };
             match message {
                 Message::NewJob(job) => {
                     println!("Worker {} got a job; executing", id);
