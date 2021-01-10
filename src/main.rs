@@ -3,6 +3,7 @@ use std::io::prelude::*;
 use std::net::{TcpListener, TcpStream};
 use std::thread;
 use std::time::Duration;
+use std::f64::consts::PI;
 
 use hello::ThreadPool;
 
@@ -23,9 +24,12 @@ fn main() {
         });
     }
     println!("Shutting Down");
+
+    let x = PI;
+    println!("{}", x);
 }
 
-fn handle_connection(mut stream: TcpStream) {
+fn handle_connection( mut stream: TcpStream) {
     let mut buffer = [0; 1024];
 
     stream.read(&mut buffer).unwrap();
